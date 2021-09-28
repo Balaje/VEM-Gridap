@@ -5,7 +5,7 @@ f(x) = (2π^2+1)*sin(π*x[1])*sin(π*x[2])
 u(x) = sin(π*x[1])*sin(π*x[2])
 
 partition = (50,50)
-model = CartesianDiscreteModel(domain, partition)
+model = simplexify(CartesianDiscreteModel(domain, partition))
 Ω = Triangulation(model)
 Qₕ = CellQuadrature(Ω, 4)
 

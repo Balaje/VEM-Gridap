@@ -17,9 +17,7 @@ end
 
 function P1ConformingVESpace(model::DiscreteModel, stab_coeff; kwargs...)
   mesh = Triangulation(model)
-  verts = mesh.node_coords
-  m = Broadcasting(Reindex(verts))
-  cell_verts = lazy_map(m, mesh.cell_node_ids)
+  cell_verts = get_cell_coordinates(mesh)
 
   Π∇ = lazy_map(_generate_ritz_matrices, cell_verts, geo(mesh))
   stability_term = lazy_map(_generate_stabilising_term, Π∇, geo(mesh))
@@ -52,7 +50,9 @@ get_stab_coeff(V::TrialVESpace) = V.space.stab_coeff
 Routine for computing G, D, B, H for one element
 """
 function _generate_ritz_matrices(verts, acd)
-  verts = view(verts,[1,2,4,3]) # To make it a closed polygon.
+  if(length(verts) == 4)
+    verts = view(verts,[1,2,4,3]) # To make it a closed quad
+  end
   nsides = length(verts)
   npolys = 3
   a,c,d = acd

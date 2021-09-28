@@ -3,10 +3,12 @@ Function to get the area, centroid, diameter of an element
 """
 
 function geo(mesh::Triangulation, id::Int64)
-  elem = mesh.cell_node_ids[id]
-  nodes = mesh.node_coords
-  verts = nodes[elem]
-  verts = view(verts,[1,2,4,3]) # To make it a closed polygon.
+  mesh = Triangulation(model)
+  cell_verts = get_cell_coordinates(mesh)
+  verts = cell_verts[id]
+  if(length(verts) == 4)
+    verts = view(verts,[1,2,4,3]) # To make it a closed quad
+  end
   nsides = length(verts)
   vs = map(nc -> SVector(Tuple(nc)), verts)
   vs = reinterpret(reshape, Float64, vs)
