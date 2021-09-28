@@ -43,7 +43,7 @@ Description:
   
   ```
   For the lowest order order case, the degrees of freedom is identical to the lowest order Lagrange finite element space. So for geometrical purposes, we can associate a linear `FESpace` to the new conforming `VESpace`. 
-  In addition to that we have two new data structures `Π∇, stability_term` for the purpose of (cellwise) VEM projectors. You can find the details of the construction here[here](http://arturo.imati.cnr.it/brezzi/papers/hitchhikers-preprint.pdf).
+  In addition to that we have two new data structures `Π∇, stability_term` for the purpose of (cellwise) VEM projectors. You can find the details of the construction [here](http://arturo.imati.cnr.it/brezzi/papers/hitchhikers-preprint.pdf).
   
 - Once we construct the `VESpace`, we can construct the stiffness matrices (local) and the load vector (local) using these functions cell-wise:
   ```julia
@@ -90,7 +90,7 @@ Description:
   vector = assemble_vector(assem, vecdata)
   ```
   
-  - We then solve the problem and interpolate the raw vector (VEM solution) to the underlying `FESpace`, since we cannot express the virtual element basis explicitly. We perform a very basic convergence analysis to see if the numbers obey the error estimate
+- We then solve the problem and interpolate the raw vector (VEM solution) to the underlying `FESpace`, since we cannot express the virtual element basis explicitly. We perform a very basic convergence analysis to see if the numbers obey the error estimate
   ```julia
   || u - uₕ || ≤ Ch²
   ```
@@ -111,4 +111,5 @@ Description:
    1.9962159242854818
    1.9990500988135191
   ```
+  
   
