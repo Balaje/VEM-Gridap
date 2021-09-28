@@ -3,7 +3,6 @@ Function to get the area, centroid, diameter of an element
 """
 
 function geo(mesh::Triangulation, id::Int64)
-  mesh = Triangulation(model)
   cell_verts = get_cell_coordinates(mesh)
   verts = cell_verts[id]
   if(length(verts) == 4)
