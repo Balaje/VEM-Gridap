@@ -30,7 +30,7 @@ op = AffineVEOperator(a, l, Vₕ⁰, Vₕ)
 uh = solve(op) ## Get the FEFunction
 ```
 
-Description:
+## Description:
 
 - To build a lowest order VE space for a discrete model, we use the new data structure
   ```julia
