@@ -70,6 +70,17 @@ Description:
     projector'*Fⱼ
   end
   ```
+This is possible because Gridap allows us to do something like 
+
+```julia
+mᵢ(x) = x[1]; cfᵢ = CellField(mᵢ, mesh)
+mⱼ(x) = x[2]; cfⱼ = CellField(mⱼ, mesh)
+
+H[i,j] = ∫(∇(cfᵢ)⋅∇(cfⱼ) + cfᵢ*cfⱼ)Qₕ
+```
+
+This can be used to compute the action of the bilinear form `a(u,v)` on the scaled monomials. This is because the quadrature rules on the elements are well defined and direct numerical integration is possible. However, note that this fails for arbitrary order polygons. The idea is then to subdivide the polygons into triangles and dispatch `∫` appropriately.
+  
 - To obtain the cell-wise contributions, we map the above functions to each element in the mesh: We do this using the `lazy_map` functionality.
   ```julia
     matcontribs = lazy_map(i -> _generate_mat_contribs(a, trial, acd, i), 1:num_cells(mesh))
