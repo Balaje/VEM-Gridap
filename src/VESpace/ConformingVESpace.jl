@@ -4,29 +4,49 @@ Declare a struct containing the VEM space. Contains
 - stability term
 The projectors and stability term depend only on the geometry of the element.
 """
-struct P1ConformingVESpace{A} <: Any
-  order::Int64
-  mesh::A
+abstract type VESpace end
+
+struct P1ConformingVESpace <: VESpace
+  model::DiscreteModel
   Π∇
-  Π0
   stability_term
-  function P1ConformingVESpace(order, mesh;
-                   Π∇=Nothing, Π0=Nothing, stability_term=Nothing)
-    new{typeof(mesh)}(order, mesh, Π∇, Π0, stability_term)
-  end
+  linear_fespace::FESpace
+  stab_coeff
 end
 
-function P1ConformingVESpace(order, mesh::Triangulation)
+
+function P1ConformingVESpace(model::DiscreteModel, stab_coeff; kwargs...)
+  mesh = Triangulation(model)
   verts = mesh.node_coords
   m = Broadcasting(Reindex(verts))
   cell_verts = lazy_map(m, mesh.cell_node_ids)
 
   Π∇ = lazy_map(_generate_ritz_matrices, cell_verts, geo(mesh))
-  Π0 = lazy_map(_generate_l2_matrices, cell_verts, geo(mesh))
   stability_term = lazy_map(_generate_stabilising_term, Π∇, geo(mesh))
 
-  P1ConformingVESpace(order, mesh; Π∇=Π∇,Π0=Π0,stability_term=stability_term)
+  linear_fespace = FESpace(model, ReferenceFE(lagrangian, Float64, 1); kwargs...)
+  P1ConformingVESpace(model, Π∇, stability_term, linear_fespace, stab_coeff)
 end
+
+struct TrialVESpace <: VESpace
+  space::P1ConformingVESpace
+  linear_fespace::FESpace
+end
+
+function TrialVESpace(f::VESpace, object)
+  fespace = f.linear_fespace
+  TrialVESpace(f, TrialFESpace(fespace, object))
+end
+
+FESpaces.get_triangulation(V::P1ConformingVESpace) = get_triangulation(V.linear_fespace)
+get_Π∇(V::P1ConformingVESpace) = V.Π∇
+get_stability(V::P1ConformingVESpace) = V.stability_term
+get_stab_coeff(V::P1ConformingVESpace) = V.stab_coeff
+
+FESpaces.get_triangulation(V::TrialVESpace) = get_triangulation(V.space.linear_fespace)
+get_Π∇(V::TrialVESpace) = V.space.Π∇
+get_stability(V::TrialVESpace) = V.space.stability_term
+get_stab_coeff(V::TrialVESpace) = V.space.stab_coeff
 
 """
 Routine for computing G, D, B, H for one element
