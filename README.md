@@ -2,7 +2,7 @@
 
 **Note**: 
 - **This code works only for the lowest order virtual element. Currently the code has the Ritz projector built in. This is good, since for the lowest order VEM, the Ritz projector can be used for both stiffness and mass terms.**
-- **This code heavily depends on the linear Lagrange `FESpace` machinery in Gridap.jl**
+- **This code heavily depends on the linear Lagrange `FESpace` machinery in Gridap.jl. The `FESpace` machinery is used for the geometrical part and for assembly, as the degrees of freedom of the lowest order VEM is identical to linear Lagrange `FESpace`.**
 
 An example problem:
 
