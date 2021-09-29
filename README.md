@@ -7,31 +7,39 @@
 An example problem:
 
 ```julia
-include("VEM-Julia.jl") # Load the functions
+include("VEM-Julia.jl")
+
+using Gridap: ∇
 
 domain = (0,1,0,1)
-f(x) = (2π^2+1)*sin(π*x[1])*sin(π*x[2])
 u(x) = sin(π*x[1])*sin(π*x[2])
 
-partition = (50,50)
-model = simplexify(CartesianDiscreteModel(domain, partition))
+K(x) = x[1]^2 + x[2]^2
+σ(x) = K(x)⋅(∇(u))(x)
+f(x) = -(∇⋅σ)(x) + u(x)
+
+partition = (10,10)
+model = CartesianDiscreteModel(domain, partition)
 Ω = Triangulation(model)
 Qₕ = CellQuadrature(Ω, 4)
 
-Vₕ = P1ConformingVESpace(model, [0,1]; dirichlet_tags="boundary");
+Vₕ = P1ConformingVESpace(model, K; dirichlet_tags="boundary"); # Argument K to define the scaling of the stability term
 Vₕ⁰ = TrialVESpace(Vₕ, 0);
 
-# Simple weak form. Varies in VEM case (with consistency and stability terms ...), but is simple for the lowest order. 
-a(u,v)=∫(∇(u)⋅∇(v) + u*v)Qₕ
+a(u,v)=∫(K*∇(u)⋅∇(v) + u*v)Qₕ
 l(v) = ∫(f*v)Qₕ
 
-# Solve
 op = AffineVEOperator(a, l, Vₕ⁰, Vₕ)
+
 uh = solve(op) ## Get the FEFunction
+
+e = u - uh
+err = √(sum(∫(e*e)Qₕ))
 ```
 
 ## Description:
 
+### FESpace and Element-wise contributions
 - To build a lowest order VE space for a discrete model, we use the new data structure
   ```julia
   P1ConformingVESpace(::DiscreteModel, ::StabilityCoeffs; kwargs...):
@@ -39,7 +47,7 @@ uh = solve(op) ## Get the FEFunction
     Π∇
     stability_term
     linear_fespace::FESpace # FESpace(model, ReferenceFE(lagrangian, Float64, 1); kwargs...)
-    stab_coeff
+    stab_coeff::Function
   
   ```
   For the lowest order order case, the degrees of freedom is identical to the lowest order Lagrange finite element space. So for geometrical purposes, we can associate a linear `FESpace` to the new conforming `VESpace`. 
@@ -53,14 +61,15 @@ uh = solve(op) ## Get the FEFunction
     :
     # Some magic here ... #
     :
-    projector'*H*projector + sum(area.^stab_coeff)*stability_term # Final term
+    coeff_matrix = stab_coeff(centroid)
+    projector'*H*projector + (coeff_matrix)*stability_term # Final term
   end
   ```
-  Here the stability term is defined as sums of powers of `area(element) = |K|`. You have `1` in every mass terms and `0` in every stiffness terms (involves gradients). So for this type of weak form
+  Here the `coeff_matrix` is a diagonal matrix of the stability function evaluated at the element centroid. This defines the scaling of the stability term. In the example, for the weak formulation
   ```julia
-  ∫(∇(u)⋅∇(v) + u*v)
+  ∫(K*∇(u)⋅∇(v) + u*v)
   ```
-  you have the sum of `|K|^0` and `|K|^1` for the stiffness and mass terms respectively, and hence `Vₕ.stab_coeff = [0,1]`. The load vector similarly 
+  the diffusion function `K` is used to define the scaling of the term, since the weak form scales `~ K`. The load vector similarly 
   ```julia
   function _generate_vec_contribs(l::Function, V::VESpace, acd, ind)
     a, c, d = acd[ind]
@@ -70,23 +79,16 @@ uh = solve(op) ## Get the FEFunction
     projector'*Fⱼ
   end
   ```
-This is possible because Gridap allows us to do something like 
-
-```julia
-mᵢ(x) = x[1]; cfᵢ = CellField(mᵢ, mesh)
-mⱼ(x) = x[2]; cfⱼ = CellField(mⱼ, mesh)
-
-H[i,j] = ∫(∇(cfᵢ)⋅∇(cfⱼ) + cfᵢ*cfⱼ)Qₕ
-```
-
-This can be used to compute the action of the bilinear form `a(u,v)` on the scaled monomials. This is because the quadrature rules on the elements are well defined and direct numerical integration is possible. However, note that this fails for arbitrary order polygons. The idea is then to subdivide the polygons into triangles and dispatch `∫` appropriately.
+  where we don't have the stability term. The `magic` here is that `Gridap` can be used to compute the action of the bilinear form `a(u,v)` on the scaled monomials. This is because the quadrature rules on the elements are well defined and direct numerical integration is possible (Do take a look at how the implementation works in the code [here](https://github.com/Balaje/VEM-Julia-Gridap/blob/740985a078551cf92d9815c3e48c319d54e8d150/src/VESpace/AffineVEOperator.jl#L48) and [here](https://github.com/Balaje/VEM-Julia-Gridap/blob/740985a078551cf92d9815c3e48c319d54e8d150/src/VESpace/AffineVEOperator.jl#L83)). However, note that this fails for arbitrary order polygons. The idea is then to subdivide the polygons into triangles and dispatch `∫` appropriately (Future work).
   
 - To obtain the cell-wise contributions, we map the above functions to each element in the mesh: We do this using the `lazy_map` functionality.
   ```julia
     matcontribs = lazy_map(i -> _generate_mat_contribs(a, trial, acd, i), 1:num_cells(mesh))
     loadcontribs = lazy_map(i -> _generate_vec_contribs(l, trial, acd, i), 1:num_cells(mesh))
   ```
-  We then use the low-level assembly routine: `SparseMatrixAssembler` available in Gridap, but with the extra dispatch
+  
+## Assembly and solution
+We then use the low-level assembly routine: `SparseMatrixAssembler` available in Gridap, but with the extra dispatch
   ```julia
   function SparseMatrixAssembler(trial::VESpace, test::VESpace)
     SparseMatrixAssembler(trial.linear_fespace, test.linear_fespace)
@@ -101,26 +103,26 @@ This can be used to compute the action of the bilinear form `a(u,v)` on the scal
   vector = assemble_vector(assem, vecdata)
   ```
   
-- We then solve the problem and interpolate the raw vector (VEM solution) to the underlying `FESpace`, since we cannot express the virtual element basis explicitly. We perform a very basic convergence analysis to see if the numbers obey the error estimate
+We then solve the problem and interpolate the raw vector (VEM solution) to the underlying `FESpace`, since we cannot express the virtual element basis explicitly. We perform a very basic convergence analysis to see if the numbers obey the error estimate
   ```julia
-  || u - uₕ || ≤ Ch²
+  || u - uₕ ||₀ ≤ Ch²
   ```
   We run the rate of convergence script `ooc_vem_example.jl` to check:
   ```
-  julia> err
-  5×1 Matrix{Float64}:
-   0.05044987832391834
-   0.013124575219057735
-   0.003315286192444438
-   0.000830998335419876
-   0.0002078864156536598
+ julia> err
+5×1 Matrix{Float64}:
+ 0.040594555904984765
+ 0.010306757323680199
+ 0.002586435110433769
+ 0.0006472156606070523
+ 0.00016184181015375544
 
-  julia> log.(err[1:end-1] ./ err[2:end])./log.(2)
-  4-element Vector{Float64}:
-   1.9425800595509743
-   1.985065408628436
-   1.9962159242854818
-   1.9990500988135191
+julia> log.(err[1:end-1] ./ err[2:end])./log.(2)
+4-element Vector{Float64}:
+ 1.9776957536320143
+ 1.994553606200162
+ 1.9986465750207745
+ 1.9996621557003598
   ```
   
   
