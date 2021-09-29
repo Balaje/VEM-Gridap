@@ -59,4 +59,5 @@ julia> log.(err[1:end-1] ./ err[2:end])./log.(2)
  1.9996621557003598
   ```
   
+[Check out my blog for details](https://balaje.github.io/2021/09/29/Virtual-Elements.html)
   
