@@ -70,8 +70,14 @@ function _generate_mat_contribs(a::Function, V::VESpace, acd, ind)
   stability_term = get_stability(V)[ind]
   projector = (B*D)\B
 
+  nsides = size(D, 1)
+  coeff_matrix = zeros(nsides, nsides)
+  for k=1:nsides
+    coeff_matrix[k,k] = stab_coeff(c)
+  end
+
   # Local matrix
-  projector'*H*projector + sum(ar.^stab_coeff)*stability_term
+  projector'*H*projector + stability_term*coeff_matrix
 end
 
 function _generate_vec_contribs(l::Function, V::VESpace, acd, ind)

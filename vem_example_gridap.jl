@@ -10,12 +10,16 @@ K(x) = x[1]^2 + x[2]^2
 f(x) = -(∇⋅σ)(x) + u(x)
 
 
-partition = (20,20)
-model = simplexify(CartesianDiscreteModel(domain, partition))
+partition = (10,10)
+model = CartesianDiscreteModel(domain, partition)
 Ω = Triangulation(model)
 Qₕ = CellQuadrature(Ω, 4)
 
-Vₕ = P1ConformingVESpace(model, [0,1]; dirichlet_tags="boundary");
+# Pass K into the FESpace for the stability term
+# - This could be any function that scales appropriately as the bilinear form.
+# - The closest function is actually K
+
+Vₕ = P1ConformingVESpace(model, K; dirichlet_tags="boundary");
 Vₕ⁰ = TrialVESpace(Vₕ, 0);
 
 a(u,v)=∫(K*∇(u)⋅∇(v) + u*v)Qₕ

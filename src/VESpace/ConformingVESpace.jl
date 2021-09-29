@@ -11,7 +11,7 @@ struct P1ConformingVESpace <: VESpace
   Π∇
   stability_term
   linear_fespace::FESpace
-  stab_coeff
+  stab_coeff::Function
 end
 
 

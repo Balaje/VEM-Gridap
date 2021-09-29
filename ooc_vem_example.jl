@@ -1,7 +1,8 @@
 include("VEM-Julia.jl")
 
 domain = (0,1,0,1)
-f(x) = (2π^2+1)*sin(π*x[1])*sin(π*x[2])
+K = 2 # Diffusion constant
+f(x) = (2π^2*K+1)*sin(π*x[1])*sin(π*x[2])
 u(x) = sin(π*x[1])*sin(π*x[2])
 
 partition = [(5,5), (10,10), (20,20), (40,40), (80,80)]
@@ -9,14 +10,15 @@ max_ref = 5
 err = zeros(max_ref, 1)
 
 for nref = 1:max_ref
-  model = simplexify(CartesianDiscreteModel(domain, partition[nref]))
+  model = (CartesianDiscreteModel(domain, partition[nref]))
   Ω = Triangulation(model)
   Qₕ = CellQuadrature(Ω, 4)
 
-  Vₕ = P1ConformingVESpace(model, [0,1]; dirichlet_tags="boundary");
+  # Pass the scaling function x->K (diffusion constant) to modify the stability term
+  Vₕ = P1ConformingVESpace(model, x->K; dirichlet_tags="boundary");
   Vₕ⁰ = TrialVESpace(Vₕ, 0);
 
-  a(u,v)=∫(∇(u)⋅∇(v) + u*v)Qₕ
+  a(u,v)=∫(K*∇(u)⋅∇(v) + u*v)Qₕ
   l(v) = ∫(f*v)Qₕ
 
   op = AffineVEOperator(a, l, Vₕ⁰, Vₕ)
