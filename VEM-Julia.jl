@@ -9,7 +9,3 @@ include("src/Geometry/geo.jl")
 
 include("src/VESpace/ConformingVESpace.jl")
 include("src/VESpace/AffineVEOperator.jl")
-
-include("src/Projectors/gradprojectors.jl")
-
-include("src/Quadrature/quadrature_rule.jl")

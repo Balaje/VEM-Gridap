@@ -10,7 +10,7 @@ K(x) = x[1]^2 + x[2]^2
 f(x) = -(∇⋅σ)(x) + u(x)
 
 
-partition = (10,10)
+partition = (40,40)
 model = CartesianDiscreteModel(domain, partition)
 Ω = Triangulation(model)
 Qₕ = CellQuadrature(Ω, 4)
