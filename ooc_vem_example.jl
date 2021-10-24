@@ -1,5 +1,8 @@
 include("VEM-Julia.jl")
 
+using Plots
+using LaTeXStrings
+
 domain = (0,1,0,1)
 K = 2 # Diffusion constant
 f(x) = (2π^2*K+1)*sin(π*x[1])*sin(π*x[2])
@@ -35,3 +38,9 @@ for nref = 1:max_ref
   # writevtk(get_triangulation(uh), "ve_solution", cellfields=["gh"=>uh])
   # writevtk(get_triangulation(uh), "exact_solution", cellfields=["gh"=>CellField(u, Ω)])
 end
+
+N = [5,10,20,40,80];
+h = 1 ./N;
+
+plt = plot(log.(h), log.(err), marker=5, label="\$|| u - u_h ||_{0}\$");
+plot!(log.(h), log.(h.^2))
