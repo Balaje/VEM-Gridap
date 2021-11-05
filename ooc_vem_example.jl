@@ -13,7 +13,7 @@ max_ref = 5
 err = zeros(max_ref, 1)
 
 for nref = 1:max_ref
-  model = (CartesianDiscreteModel(domain, partition[nref]))
+  model = simplexify(CartesianDiscreteModel(domain, partition[nref]))
   Ω = Triangulation(model)
   Qₕ = CellQuadrature(Ω, 4)
 

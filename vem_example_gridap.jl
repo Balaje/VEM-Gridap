@@ -5,7 +5,7 @@ using Gridap: ∇
 domain = (0,1,0,1)
 u(x) = sin(π*x[1])*sin(π*x[2])
 
-K(x) = 1
+K(x) = x[1]^2 + x[2]^2
 σ(x) = K(x)⋅(∇(u))(x)
 f(x) = -(∇⋅σ)(x) + u(x)
 
