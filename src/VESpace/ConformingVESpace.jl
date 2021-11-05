@@ -14,6 +14,10 @@ struct P1ConformingVESpace <: VESpace
   stab_coeff::Function
 end
 
+"""
+P2ConformingVESpace:
+  Todo ....
+"""
 struct P2ConformingVESpace <: VESpace
   model::DiscreteModel
   Π∇
@@ -32,14 +36,6 @@ function P1ConformingVESpace(model::DiscreteModel, stab_coeff; kwargs...)
   P1ConformingVESpace(model, Π∇, stability_term, linear_fespace, stab_coeff)
 end
 
-function P2ConformingVESpace(model::DiscreteModel, stab_coeff; kwargs...)
-  mesh = Triangulation(model)
-  cell_verts = get_cell_coordinates(mesh)
-  Π∇ = lazy_map(_generate_ritz_matrices, cell_verts, geo(mesh))
-  Π0 = lazy_map(_generate_l2_matrices, cell_verts, geo(mesh))
-  stability_term = lazy_map(_generate_stabilising_term, Π∇, geo(mesh))
-
-end
 
 struct TrialVESpace <: VESpace
   space::P1ConformingVESpace
